@@ -19,10 +19,10 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr;
             gap: 24px;
         }
 
@@ -42,7 +42,7 @@
 
         .game-info {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 12px;
             margin-bottom: 20px;
         }
@@ -90,10 +90,63 @@
             color: #007bff;
         }
 
+        .strike-counter-display {
+            padding: 12px;
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .strike-counter-label {
+            font-size: 12px;
+            color: #856404;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .strike-counter-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffc107;
+        }
+
+        .toss-counter-display {
+            padding: 12px;
+            background-color: #e8f5e9;
+            border-left: 3px solid #28a745;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .toss-counter-label {
+            font-size: 12px;
+            color: #2e7d32;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .toss-counter-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #28a745;
+        }
+
         .button-group {
             display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
             margin-bottom: 16px;
+        }
+
+        .button-group.full {
+            grid-template-columns: 1fr;
+        }
+
+        .button-group.triple {
+            grid-template-columns: repeat(3, 1fr);
         }
 
         button {
@@ -149,6 +202,15 @@
 
         .btn-secondary:hover {
             background-color: #5a6268;
+        }
+
+        .btn-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #138496;
         }
 
         .btn-small {
@@ -252,7 +314,7 @@
         }
 
         .game-log {
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
             border: 1px solid #dee2e6;
             border-radius: 6px;
@@ -364,12 +426,22 @@
             border-radius: 4px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .container {
                 grid-template-columns: 1fr;
             }
 
             .game-info {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .game-info {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
                 grid-template-columns: 1fr;
             }
         }
@@ -384,7 +456,7 @@
             <div class="game-info">
                 <div class="info-item">
                     <div class="info-label">Inning</div>
-                    <div class="info-value" id="inningSide">
+                    <div class="info-value">
                         <span id="inningNumber">1</span> - <span id="inningPhase">Top</span>
                     </div>
                 </div>
@@ -407,16 +479,40 @@
                 <div class="current-batter-name" id="currentBatterName">None Selected</div>
             </div>
 
-            <div class="button-group">
+            <div class="toss-counter-display" id="tossDisplay" style="display: none;">
+                <div class="toss-counter-label">Tosses</div>
+                <div class="toss-counter-value" id="tossCounterValue">0</div>
+            </div>
+
+            <div class="strike-counter-display" id="strikeDisplay" style="display: none;">
+                <div class="strike-counter-label">Strikes</div>
+                <div class="strike-counter-value" id="strikeCounterValue">0</div>
+            </div>
+
+            <div class="button-group full">
                 <button class="btn-primary" onclick="openBatterModal()">Select Batter</button>
             </div>
 
-            <div class="roster-title">Scoring Actions</div>
+            <div class="roster-title">At-Bat Actions</div>
             <div class="button-group">
+                <button class="btn-info" onclick="attemptToss()">Toss</button>
+                <button class="btn-warning" onclick="attemptStrikeFoul()">Strike (Foul)</button>
+                <button class="btn-warning" onclick="attemptStrikeSwing()">Strike (Swing)</button>
                 <button class="btn-success" onclick="attemptAddPoint()">Add Point</button>
-                <button class="btn-warning" onclick="attemptRemovePoint()">Remove Point</button>
+            </div>
+
+            <div class="button-group triple">
+                <button class="btn-success" onclick="attemptHomeRun()">Home Run</button>
+                <button class="btn-info" onclick="attemptHitBase1()">Hit to Base 1</button>
+                <button class="btn-info" onclick="attemptHitBase2()">Hit to Base 2</button>
+            </div>
+
+            <div class="button-group full">
+                <button class="btn-danger" onclick="attemptPopFlyCatch()">Pop Fly Catch</button>
+            </div>
+
+            <div class="button-group full">
                 <button class="btn-danger" onclick="attemptTaggedOut()">Tagged Out</button>
-                <button class="btn-secondary" onclick="attemptStrike()">Strike</button>
             </div>
 
             <div class="roster-title" style="margin-top: 20px;">Game Management</div>
@@ -433,8 +529,8 @@
                 <button class="btn-secondary btn-small" onclick="resetTimer()">Reset</button>
             </div>
 
-            <div class="button-group">
-                <button class="btn-primary" onclick="exportGameData()">Export Game Data</button>
+            <div class="button-group full">
+                <button class="btn-primary" onclick="exportGameDataCSV()">Export to CSV</button>
             </div>
         </div>
 
@@ -448,7 +544,7 @@
 
                 <div class="player-input-group">
                     <input type="text" id="newPlayerInput" placeholder="Enter player name" onkeypress="if(event.key === 'Enter') addPlayer()">
-                    <button class="btn-primary btn-small" onclick="addPlayer()">Add Player</button>
+                    <button class="btn-primary btn-small" onclick="addPlayer()">Add</button>
                 </div>
 
                 <div class="player-list" id="team1Roster"></div>
@@ -478,7 +574,7 @@
         </div>
     </div>
 
-    <!-- Scorer Modal (for Add Point) -->
+    <!-- Scorer Modal -->
     <div id="scorerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Who Scored?</div>
@@ -517,6 +613,8 @@
             timerSeconds: 0,
             timerRunning: false,
             selectedBatterIndex: null,
+            tosses: 0,
+            strikes: 0,
             gameLog: []
         };
 
@@ -534,7 +632,6 @@
         let selectedScorerIndex = null;
         let selectedTaggedOutPlayerIndex = null;
         let selectedTaggedOutBase = null;
-        let actionPending = null;
 
         // Initialize
         function initializeApp() {
@@ -622,6 +719,7 @@
             if (gameState.selectedBatterIndex !== null) {
                 const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
                 const batterName = rosters[team][gameState.selectedBatterIndex];
+                resetStrikesAndTosses();
                 addGameLog(`${batterName} is now batting`);
                 updateUI();
                 closeBatterModal();
@@ -636,7 +734,84 @@
             document.getElementById('confirmBatterBtn').disabled = gameState.selectedBatterIndex === null;
         }
 
-        // Attempt Add Point
+        // Reset Strikes and Tosses
+        function resetStrikesAndTosses() {
+            gameState.strikes = 0;
+            gameState.tosses = 0;
+        }
+
+        // Toss Function
+        function attemptToss() {
+            if (gameState.selectedBatterIndex === null) {
+                alert('Please select a batter first!');
+                openBatterModal();
+                return;
+            }
+
+            gameState.tosses++;
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            addGameLog(`${batterName} - Toss #${gameState.tosses}`);
+            updateUI();
+        }
+
+        // Strike Functions
+        function attemptStrikeFoul() {
+            if (gameState.selectedBatterIndex === null) {
+                alert('Please select a batter first!');
+                openBatterModal();
+                return;
+            }
+
+            gameState.strikes++;
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            addGameLog(`${batterName} - Strike (Foul) ${gameState.strikes}/3`);
+
+            if (gameState.strikes >= 3) {
+                triggerAutoOut();
+            } else {
+                updateUI();
+            }
+        }
+
+        function attemptStrikeSwing() {
+            if (gameState.selectedBatterIndex === null) {
+                alert('Please select a batter first!');
+                openBatterModal();
+                return;
+            }
+
+            gameState.strikes++;
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            addGameLog(`${batterName} - Strike (Swing) ${gameState.strikes}/3`);
+
+            if (gameState.strikes >= 3) {
+                triggerAutoOut();
+            } else {
+                updateUI();
+            }
+        }
+
+        // Auto Out on 3 Strikes
+        function triggerAutoOut() {
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            gameState.outs++;
+            addGameLog(`${batterName} - OUT on strikes!`);
+
+            if (gameState.outs >= 3) {
+                gameState.outs = 0;
+                switchInning();
+            } else {
+                resetStrikesAndTosses();
+                gameState.selectedBatterIndex = null;
+                updateUI();
+            }
+        }
+
+        // Add Point Function
         function attemptAddPoint() {
             if (gameState.selectedBatterIndex === null) {
                 alert('Please select a batter first!');
@@ -683,7 +858,7 @@
                     gameState.team2Score++;
                 }
 
-                addGameLog(`${batterName} hit and ${scorerName} scored (Team ${gameState.currentTeam})`);
+                addGameLog(`${batterName} hit - ${scorerName} scored (Team ${gameState.currentTeam})`);
                 updateUI();
                 closeScorerModal();
             }
@@ -697,8 +872,8 @@
             document.getElementById('confirmScorerBtn').disabled = selectedScorerIndex === null;
         }
 
-        // Attempt Remove Point
-        function attemptRemovePoint() {
+        // Home Run Function
+        function attemptHomeRun() {
             if (gameState.selectedBatterIndex === null) {
                 alert('Please select a batter first!');
                 openBatterModal();
@@ -706,21 +881,83 @@
             }
 
             const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
-            if ((team === 'team1' && gameState.team1Score > 0) || (team === 'team2' && gameState.team2Score > 0)) {
-                const currentTeam = gameState.currentTeam;
-                if (currentTeam === 1) {
-                    gameState.team1Score--;
-                } else {
-                    gameState.team2Score--;
-                }
+            const batterName = rosters[team][gameState.selectedBatterIndex];
 
-                const batterName = rosters[team][gameState.selectedBatterIndex];
-                addGameLog(`${batterName} - Point removed (Team ${gameState.currentTeam})`);
+            if (gameState.currentTeam === 1) {
+                gameState.team1Score += 2;
+            } else {
+                gameState.team2Score += 2;
+            }
+
+            addGameLog(`${batterName} - HOME RUN! (2 points for Team ${gameState.currentTeam})`);
+            resetStrikesAndTosses();
+            gameState.selectedBatterIndex = null;
+            updateUI();
+        }
+
+        // Hit to Base Functions
+        function attemptHitBase1() {
+            if (gameState.selectedBatterIndex === null) {
+                alert('Please select a batter first!');
+                openBatterModal();
+                return;
+            }
+
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            addGameLog(`${batterName} - Hit to Base 1`);
+            resetStrikesAndTosses();
+            gameState.selectedBatterIndex = null;
+            updateUI();
+        }
+
+        function attemptHitBase2() {
+            if (gameState.selectedBatterIndex === null) {
+                alert('Please select a batter first!');
+                openBatterModal();
+                return;
+            }
+
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            addGameLog(`${batterName} - Hit to Base 2`);
+            resetStrikesAndTosses();
+            gameState.selectedBatterIndex = null;
+            updateUI();
+        }
+
+        // Pop Fly Catch Function
+        function attemptPopFlyCatch() {
+            if (gameState.selectedBatterIndex === null) {
+                alert('Please select a batter first!');
+                openBatterModal();
+                return;
+            }
+
+            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+            const batterName = rosters[team][gameState.selectedBatterIndex];
+            const fieldingTeam = gameState.currentTeam === 1 ? 2 : 1;
+
+            if (fieldingTeam === 1) {
+                gameState.team1Score += 1;
+            } else {
+                gameState.team2Score += 1;
+            }
+
+            gameState.outs++;
+            addGameLog(`${batterName} - POP FLY CAUGHT! (1 point for Team ${fieldingTeam})`);
+
+            if (gameState.outs >= 3) {
+                gameState.outs = 0;
+                switchInning();
+            } else {
+                resetStrikesAndTosses();
+                gameState.selectedBatterIndex = null;
                 updateUI();
             }
         }
 
-        // Attempt Tagged Out
+        // Tagged Out Modal Functions
         function attemptTaggedOut() {
             if (gameState.selectedBatterIndex === null) {
                 alert('Please select a batter first!');
@@ -798,17 +1035,18 @@
                 const batterName = rosters[team][gameState.selectedBatterIndex];
 
                 gameState.outs++;
+                addGameLog(`${batterName} hit - ${taggedOutPlayer} tagged out at ${baseName}`);
+
                 if (gameState.outs >= 3) {
                     gameState.outs = 0;
                     switchInning();
+                } else {
+                    resetStrikesAndTosses();
+                    gameState.selectedBatterIndex = null;
+                    updateUI();
                 }
 
-                addGameLog(`${batterName} hit - ${taggedOutPlayer} tagged out at ${baseName}`);
-                updateUI();
                 closeTaggedOutModal();
-
-                selectedTaggedOutPlayerIndex = null;
-                selectedTaggedOutBase = null;
             }
         }
 
@@ -831,26 +1069,15 @@
             }
         }
 
-        // Attempt Strike
-        function attemptStrike() {
-            if (gameState.selectedBatterIndex === null) {
-                alert('Please select a batter first!');
-                openBatterModal();
-                return;
-            }
-
-            const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
-            const batterName = rosters[team][gameState.selectedBatterIndex];
-            addGameLog(`${batterName} - Strike`);
-        }
-
-        // Next Inning
+        // Inning Management
         function nextInning() {
             switchInning();
         }
 
         function switchInning() {
             gameState.outs = 0;
+            resetStrikesAndTosses();
+            gameState.selectedBatterIndex = null;
 
             if (gameState.inningPhase === 'Top') {
                 gameState.inningPhase = 'Bottom';
@@ -861,7 +1088,6 @@
                 gameState.currentTeam = 1;
             }
 
-            gameState.selectedBatterIndex = null;
             renderRoster();
             addGameLog(`Inning ${gameState.inning} - ${gameState.inningPhase}`);
             updateUI();
@@ -885,6 +1111,8 @@
                 gameState.team2Score = 0;
                 gameState.currentTeam = 1;
                 gameState.selectedBatterIndex = null;
+                gameState.tosses = 0;
+                gameState.strikes = 0;
                 gameState.gameLog = [];
                 rosters.team1 = [];
                 rosters.team2 = [];
@@ -893,6 +1121,8 @@
                 renderRoster();
                 updateUI();
                 document.getElementById('gameLog').innerHTML = '';
+                pauseTimer();
+                resetTimer();
             }
         }
 
@@ -954,24 +1184,34 @@
             renderGameLog();
         }
 
-        // Export Game Data
-        function exportGameData() {
-            const exportData = {
-                finalInning: gameState.inning,
-                finalOuts: gameState.outs,
-                team1Score: gameState.team1Score,
-                team2Score: gameState.team2Score,
-                team1Roster: rosters.team1,
-                team2Roster: rosters.team2,
-                gameLog: gameState.gameLog
-            };
+        // Export to CSV
+        function exportGameDataCSV() {
+            let csv = 'Stickball Game Report\n\n';
+            csv += `Final Inning,${gameState.inning}\n`;
+            csv += `Final Score - Team 1,${gameState.team1Score}\n`;
+            csv += `Final Score - Team 2,${gameState.team2Score}\n\n`;
 
-            const dataString = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataString], { type: 'application/json' });
+            csv += 'Team 1 Roster\n';
+            rosters.team1.forEach(player => {
+                csv += `${player}\n`;
+            });
+
+            csv += '\nTeam 2 Roster\n';
+            rosters.team2.forEach(player => {
+                csv += `${player}\n`;
+            });
+
+            csv += '\nGame Log\n';
+            csv += 'Time,Action\n';
+            gameState.gameLog.forEach(entry => {
+                csv += `"${entry.timestamp}","${entry.message}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `stickball_game_${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = `stickball_game_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -994,6 +1234,24 @@
                 batterDisplay.style.display = 'block';
             } else {
                 batterDisplay.style.display = 'none';
+            }
+
+            // Update toss counter display
+            const tossDisplay = document.getElementById('tossDisplay');
+            if (gameState.selectedBatterIndex !== null && gameState.tosses > 0) {
+                document.getElementById('tossCounterValue').textContent = gameState.tosses;
+                tossDisplay.style.display = 'block';
+            } else {
+                tossDisplay.style.display = 'none';
+            }
+
+            // Update strike counter display
+            const strikeDisplay = document.getElementById('strikeDisplay');
+            if (gameState.selectedBatterIndex !== null && gameState.strikes > 0) {
+                document.getElementById('strikeCounterValue').textContent = gameState.strikes;
+                strikeDisplay.style.display = 'block';
+            } else {
+                strikeDisplay.style.display = 'none';
             }
         }
 
