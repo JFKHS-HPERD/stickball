@@ -406,12 +406,12 @@
             color: white;
         }
 
-        .btn-safe-home {
+        .btn-add-point {
             background: #00BCD4;
             color: white;
         }
 
-        .btn-tagged-out {
+        .btn-remove-point {
             background: #FF5722;
             color: white;
         }
@@ -437,6 +437,113 @@
             width: 100%;
             padding: 15px;
             font-size: 1em;
+        }
+
+        /* MODAL STYLES */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { 
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .player-selector {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .player-option {
+            padding: 12px;
+            background: #f5f5f5;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .player-option:hover {
+            background: #e3f2fd;
+            border-color: #667eea;
+        }
+
+        .player-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-confirm {
+            background: #4CAF50;
+            color: white;
+            padding: 12px;
+            font-size: 1em;
+        }
+
+        .btn-confirm:hover {
+            background: #45a049;
+        }
+
+        .btn-cancel {
+            background: #f44336;
+            color: white;
+            padding: 12px;
+            font-size: 1em;
+        }
+
+        .btn-cancel:hover {
+            background: #d32f2f;
         }
 
         /* GAME LOG */
@@ -540,7 +647,6 @@
             background: #764ba2;
         }
 
-        /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -678,11 +784,24 @@
                     <button class="btn-hit" onclick="recordHit(1)">Hit to Base 1</button>
                     <button class="btn-hit" onclick="recordHit(2)">Hit to Base 2</button>
                     <button class="btn-home-run" onclick="recordHomeRun()">🏠 Home Run</button>
-                    <button class="btn-safe-home" onclick="recordRunnerSafeAtHome()">✓ Runner Safe Home</button>
+                    <button class="btn-add-point" onclick="openScorerModal()">➕ Add Point</button>
+                    <button class="btn-remove-point" onclick="removePoint()">➖ Remove Point</button>
                     <button class="btn-tagged-out" onclick="recordTaggedOut(1)">Tagged Out Base 1</button>
                     <button class="btn-tagged-out" onclick="recordTaggedOut(2)">Tagged Out Base 2</button>
                     <button class="btn-catch" onclick="recordPopFlyCatch()">Pop Fly Catch</button>
                     <button class="btn-out" onclick="recordOut('Other')">Other Out</button>
+                </div>
+            </div>
+
+            <!-- SCORER MODAL -->
+            <div id="scorerModal" class="modal">
+                <div class="modal-content">
+                    <h2>Who Scored?</h2>
+                    <div class="player-selector" id="playerSelector"></div>
+                    <div class="modal-buttons">
+                        <button class="btn-confirm" onclick="confirmScorer()">✓ Confirm</button>
+                        <button class="btn-cancel" onclick="closeScorerModal()">✕ Cancel</button>
+                    </div>
                 </div>
             </div>
 
@@ -725,7 +844,8 @@
             timerActive: false,
             timerInterval: null,
             gameLog: [],
-            gameMessage: "Game started! Let's play!"
+            gameMessage: "Game started! Let's play!",
+            selectedScorerIndex: null
         };
 
         // Initialize Setup Phase
@@ -860,27 +980,73 @@
             updateDisplay();
         }
 
-        // NEW: Runner Safe at Home
-        function recordRunnerSafeAtHome() {
-            if (!gameState.bases.base1 && !gameState.bases.base2) {
-                setGameMessage('No runners on base');
+        // Open Scorer Modal
+        function openScorerModal() {
+            const teamIndex = getCurrentTeamIndex();
+            const team = gameState.teams[teamIndex];
+            const selector = document.getElementById('playerSelector');
+
+            selector.innerHTML = team.players.map((player, idx) => `
+                <div class="player-option" onclick="selectScorer(${idx})" id="player-${idx}">
+                    ${player}
+                </div>
+            `).join('');
+
+            gameState.selectedScorerIndex = null;
+            document.getElementById('scorerModal').classList.add('show');
+        }
+
+        // Select Scorer
+        function selectScorer(playerIndex) {
+            // Remove previous selection
+            document.querySelectorAll('.player-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Add selection to clicked player
+            document.getElementById(`player-${playerIndex}`).classList.add('selected');
+            gameState.selectedScorerIndex = playerIndex;
+        }
+
+        // Confirm Scorer
+        function confirmScorer() {
+            if (gameState.selectedScorerIndex === null) {
+                alert('Please select a player');
                 return;
             }
 
-            let runners = [];
-            if (gameState.bases.base1) runners.push('Base 1');
-            if (gameState.bases.base2) runners.push('Base 2');
-
-            gameState.teams[getCurrentTeamIndex()].score++;
-            addToLog(`Runner safe at home from ${runners.join(' and ')}. +1 point`);
+            const teamIndex = getCurrentTeamIndex();
+            const scoringPlayer = gameState.teams[teamIndex].players[gameState.selectedScorerIndex];
             
-            // Clear bases after runner scores
-            gameState.bases = { base1: false, base2: false };
-            setGameMessage(`Runner scored! +1 point`);
+            gameState.teams[teamIndex].score += 1;
+            addToLog(`${scoringPlayer} scored! +1 point`);
+            setGameMessage(`✓ ${scoringPlayer} scored! +1 point`);
+            
+            closeScorerModal();
             updateDisplay();
         }
 
-       // NEW: Tagged Out
+        // Close Scorer Modal
+        function closeScorerModal() {
+            document.getElementById('scorerModal').classList.remove('show');
+            gameState.selectedScorerIndex = null;
+        }
+
+        // Remove Point
+        function removePoint() {
+            const teamIndex = getCurrentTeamIndex();
+            if (gameState.teams[teamIndex].score <= 0) {
+                setGameMessage('Cannot remove point - score is already 0');
+                return;
+            }
+
+            gameState.teams[teamIndex].score -= 1;
+            addToLog(`Point removed (error correction). -1 point`);
+            setGameMessage(`❌ Point removed (error correction). Current score: ${gameState.teams[teamIndex].score}`);
+            updateDisplay();
+        }
+
+        // Record Tagged Out
         function recordTaggedOut(baseNumber) {
             if (baseNumber === 1 && !gameState.bases.base1) {
                 setGameMessage('No runner on base 1');
@@ -1154,7 +1320,8 @@
                 timerActive: false,
                 timerInterval: null,
                 gameLog: [],
-                gameMessage: "Game started! Let's play!"
+                gameMessage: "Game started! Let's play!",
+                selectedScorerIndex: null
             };
 
             document.getElementById('team1Name').value = '';
@@ -1164,6 +1331,14 @@
             showPhase('setup');
             initializeSetup();
         }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('scorerModal');
+            if (event.target === modal) {
+                closeScorerModal();
+            }
+        });
 
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
