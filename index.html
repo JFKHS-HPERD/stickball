@@ -416,13 +416,18 @@
             color: white;
         }
 
+        .btn-tagged-out {
+            background: #9C27B0;
+            color: white;
+        }
+
         .btn-catch {
             background: #FF9800;
             color: white;
         }
 
         .btn-out {
-            background: #9C27B0;
+            background: #E91E63;
             color: white;
         }
 
@@ -495,6 +500,8 @@
             grid-template-columns: 1fr;
             gap: 10px;
             margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .player-option {
@@ -513,6 +520,34 @@
         }
 
         .player-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .base-selector {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .base-option {
+            padding: 12px;
+            background: #f5f5f5;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .base-option:hover {
+            background: #e3f2fd;
+            border-color: #667eea;
+        }
+
+        .base-option.selected {
             background: #667eea;
             color: white;
             border-color: #667eea;
@@ -544,6 +579,19 @@
 
         .btn-cancel:hover {
             background: #d32f2f;
+        }
+
+        .modal-back-button {
+            background: #FFC107;
+            color: #333;
+            padding: 12px;
+            font-size: 1em;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .modal-back-button:hover {
+            background: #FFB300;
         }
 
         /* GAME LOG */
@@ -670,6 +718,14 @@
             color: #999;
             padding: 20px;
         }
+
+        .modal-step-indicator {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -786,8 +842,7 @@
                     <button class="btn-home-run" onclick="recordHomeRun()">🏠 Home Run</button>
                     <button class="btn-add-point" onclick="openScorerModal()">➕ Add Point</button>
                     <button class="btn-remove-point" onclick="removePoint()">➖ Remove Point</button>
-                    <button class="btn-tagged-out" onclick="recordTaggedOut(1)">Tagged Out Base 1</button>
-                    <button class="btn-tagged-out" onclick="recordTaggedOut(2)">Tagged Out Base 2</button>
+                    <button class="btn-tagged-out" onclick="openTaggedOutModal()">Tagged Out</button>
                     <button class="btn-catch" onclick="recordPopFlyCatch()">Pop Fly Catch</button>
                     <button class="btn-out" onclick="recordOut('Other')">Other Out</button>
                 </div>
@@ -801,6 +856,19 @@
                     <div class="modal-buttons">
                         <button class="btn-confirm" onclick="confirmScorer()">✓ Confirm</button>
                         <button class="btn-cancel" onclick="closeScorerModal()">✕ Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAGGED OUT MODAL -->
+            <div id="taggedOutModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-step-indicator" id="taggedOutStep">Step 1: Select Player</div>
+                    <h2 id="taggedOutTitle">Who was tagged out?</h2>
+                    <div id="taggedOutContent"></div>
+                    <div class="modal-buttons">
+                        <button class="btn-confirm" id="taggedOutConfirmBtn" onclick="nextTaggedOutStep()">✓ Next</button>
+                        <button class="btn-cancel" onclick="closeTaggedOutModal()">✕ Cancel</button>
                     </div>
                 </div>
             </div>
@@ -845,7 +913,10 @@
             timerInterval: null,
             gameLog: [],
             gameMessage: "Game started! Let's play!",
-            selectedScorerIndex: null
+            selectedScorerIndex: null,
+            taggedOutStep: 1,
+            selectedTaggedOutPlayerIndex: null,
+            selectedTaggedOutBase: null
         };
 
         // Initialize Setup Phase
@@ -942,16 +1013,14 @@
             }
         }
 
-        // Record Hit (NO automatic scoring)
+        // Record Hit
         function recordHit(baseReached) {
             const hitter = getCurrentHitter();
             addToLog(`${hitter} hit to base ${baseReached}`);
 
-            // Place runner on the base they hit to
             if (baseReached === 1) {
                 gameState.bases.base1 = true;
             } else if (baseReached === 2) {
-                // If runner on base 1, they move to base 2
                 if (gameState.bases.base1) {
                     gameState.bases.base2 = true;
                 }
@@ -965,18 +1034,17 @@
             updateDisplay();
         }
 
-        // Record Home Run (NO automatic scoring of runners)
+        // Record Home Run
         function recordHomeRun() {
             const hitter = getCurrentHitter();
             gameState.teams[getCurrentTeamIndex()].score += 2;
             addToLog(`${hitter} HOME RUN! (+2 points)`);
 
-            // Clear bases - user will manually score runners if they made it home
             gameState.bases = { base1: false, base2: false };
             gameState.tosses = 0;
             gameState.strikes = 0;
             advanceHitter();
-            setGameMessage(`🏠 ${hitter} HOME RUN! (+2 points). Manually score any runners who made it home.`);
+            setGameMessage(`🏠 ${hitter} HOME RUN! (+2 points)`);
             updateDisplay();
         }
 
@@ -998,12 +1066,10 @@
 
         // Select Scorer
         function selectScorer(playerIndex) {
-            // Remove previous selection
             document.querySelectorAll('.player-option').forEach(el => {
                 el.classList.remove('selected');
             });
 
-            // Add selection to clicked player
             document.getElementById(`player-${playerIndex}`).classList.add('selected');
             gameState.selectedScorerIndex = playerIndex;
         }
@@ -1042,37 +1108,150 @@
 
             gameState.teams[teamIndex].score -= 1;
             addToLog(`Point removed (error correction). -1 point`);
-            setGameMessage(`❌ Point removed (error correction). Current score: ${gameState.teams[teamIndex].score}`);
+            setGameMessage(`❌ Point removed. Current score: ${gameState.teams[teamIndex].score}`);
             updateDisplay();
         }
 
-        // Record Tagged Out
-        function recordTaggedOut(baseNumber) {
-            if (baseNumber === 1 && !gameState.bases.base1) {
-                setGameMessage('No runner on base 1');
-                return;
+        // Open Tagged Out Modal
+        function openTaggedOutModal() {
+            gameState.taggedOutStep = 1;
+            gameState.selectedTaggedOutPlayerIndex = null;
+            gameState.selectedTaggedOutBase = null;
+            renderTaggedOutStep();
+            document.getElementById('taggedOutModal').classList.add('show');
+        }
+
+        // Render Tagged Out Step
+        function renderTaggedOutStep() {
+            const content = document.getElementById('taggedOutContent');
+            const title = document.getElementById('taggedOutTitle');
+            const stepIndicator = document.getElementById('taggedOutStep');
+            const confirmBtn = document.getElementById('taggedOutConfirmBtn');
+
+            if (gameState.taggedOutStep === 1) {
+                stepIndicator.textContent = 'Step 1: Select Player';
+                title.textContent = 'Who was tagged out?';
+                
+                // Get all players from both teams (since we don't know which team the runner came from)
+                let allPlayers = [];
+                gameState.teams.forEach((team, teamIdx) => {
+                    team.players.forEach((player, playerIdx) => {
+                        allPlayers.push({ name: player, teamIdx, playerIdx });
+                    });
+                });
+
+                content.innerHTML = `
+                    <div class="player-selector">
+                        ${allPlayers.map((p, idx) => `
+                            <div class="player-option" onclick="selectTaggedOutPlayer(${idx})" id="tagged-player-${idx}">
+                                ${p.name} (${gameState.teams[p.teamIdx].name})
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                confirmBtn.textContent = '✓ Next';
+            } else if (gameState.taggedOutStep === 2) {
+                stepIndicator.textContent = 'Step 2: Select Base';
+                title.textContent = 'Which base was the out at?';
+                
+                content.innerHTML = `
+                    <div class="base-selector">
+                        <div class="base-option" onclick="selectTaggedOutBase(1)" id="tagged-base-1">
+                            Base 1
+                        </div>
+                        <div class="base-option" onclick="selectTaggedOutBase(2)" id="tagged-base-2">
+                            Base 2
+                        </div>
+                        <div class="base-option" onclick="selectTaggedOutBase(3)" id="tagged-base-3">
+                            Home
+                        </div>
+                    </div>
+                `;
+                confirmBtn.textContent = '✓ Confirm';
             }
-            if (baseNumber === 2 && !gameState.bases.base2) {
-                setGameMessage('No runner on base 2');
-                return;
+        }
+
+        // Store all players for tagged out modal
+        function selectTaggedOutPlayer(playerIndex) {
+            document.querySelectorAll('#taggedOutContent .player-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            document.getElementById(`tagged-player-${playerIndex}`).classList.add('selected');
+            
+            // Store the selected player info
+            let playerCount = 0;
+            for (let t = 0; t < gameState.teams.length; t++) {
+                for (let p = 0; p < gameState.teams[t].players.length; p++) {
+                    if (playerCount === playerIndex) {
+                        gameState.selectedTaggedOutPlayerIndex = { teamIdx: t, playerIdx: p, name: gameState.teams[t].players[p] };
+                        return;
+                    }
+                    playerCount++;
+                }
             }
+        }
+
+        // Select Tagged Out Base
+        function selectTaggedOutBase(base) {
+            document.querySelectorAll('#taggedOutContent .base-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            document.getElementById(`tagged-base-${base}`).classList.add('selected');
+            gameState.selectedTaggedOutBase = base;
+        }
+
+        // Next Tagged Out Step
+        function nextTaggedOutStep() {
+            if (gameState.taggedOutStep === 1) {
+                if (gameState.selectedTaggedOutPlayerIndex === null) {
+                    alert('Please select a player');
+                    return;
+                }
+                gameState.taggedOutStep = 2;
+                renderTaggedOutStep();
+            } else if (gameState.taggedOutStep === 2) {
+                if (gameState.selectedTaggedOutBase === null) {
+                    alert('Please select a base');
+                    return;
+                }
+                confirmTaggedOut();
+            }
+        }
+
+        // Confirm Tagged Out
+        function confirmTaggedOut() {
+            const playerInfo = gameState.selectedTaggedOutPlayerIndex;
+            const baseNames = { 1: 'Base 1', 2: 'Base 2', 3: 'Home' };
+            const baseName = baseNames[gameState.selectedTaggedOutBase];
 
             gameState.outs++;
-            addToLog(`Runner tagged out at base ${baseNumber}`);
+            addToLog(`${playerInfo.name} tagged out at ${baseName}`);
 
-            // Remove the runner from the base
-            if (baseNumber === 1) {
+            // Remove runner from base if applicable
+            if (gameState.selectedTaggedOutBase === 1) {
                 gameState.bases.base1 = false;
-            } else if (baseNumber === 2) {
+            } else if (gameState.selectedTaggedOutBase === 2) {
                 gameState.bases.base2 = false;
             }
+
+            closeTaggedOutModal();
 
             if (gameState.outs === 3) {
                 endInning();
             } else {
-                setGameMessage(`Out ${gameState.outs}/3 - Runner tagged out at base ${baseNumber}`);
+                setGameMessage(`Out ${gameState.outs}/3 - ${playerInfo.name} tagged out at ${baseName}`);
                 updateDisplay();
             }
+        }
+
+        // Close Tagged Out Modal
+        function closeTaggedOutModal() {
+            document.getElementById('taggedOutModal').classList.remove('show');
+            gameState.taggedOutStep = 1;
+            gameState.selectedTaggedOutPlayerIndex = null;
+            gameState.selectedTaggedOutBase = null;
         }
 
         // Record Pop Fly Catch
@@ -1321,7 +1500,10 @@
                 timerInterval: null,
                 gameLog: [],
                 gameMessage: "Game started! Let's play!",
-                selectedScorerIndex: null
+                selectedScorerIndex: null,
+                taggedOutStep: 1,
+                selectedTaggedOutPlayerIndex: null,
+                selectedTaggedOutBase: null
             };
 
             document.getElementById('team1Name').value = '';
@@ -1332,11 +1514,16 @@
             initializeSetup();
         }
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         window.addEventListener('click', (event) => {
-            const modal = document.getElementById('scorerModal');
-            if (event.target === modal) {
+            const scorerModal = document.getElementById('scorerModal');
+            const taggedOutModal = document.getElementById('taggedOutModal');
+            
+            if (event.target === scorerModal) {
                 closeScorerModal();
+            }
+            if (event.target === taggedOutModal) {
+                closeTaggedOutModal();
             }
         });
 
