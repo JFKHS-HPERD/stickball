@@ -406,6 +406,16 @@
             color: white;
         }
 
+        .btn-safe-home {
+            background: #00BCD4;
+            color: white;
+        }
+
+        .btn-tagged-out {
+            background: #FF5722;
+            color: white;
+        }
+
         .btn-catch {
             background: #FF9800;
             color: white;
@@ -668,6 +678,9 @@
                     <button class="btn-hit" onclick="recordHit(1)">Hit to Base 1</button>
                     <button class="btn-hit" onclick="recordHit(2)">Hit to Base 2</button>
                     <button class="btn-home-run" onclick="recordHomeRun()">🏠 Home Run</button>
+                    <button class="btn-safe-home" onclick="recordRunnerSafeAtHome()">✓ Runner Safe Home</button>
+                    <button class="btn-tagged-out" onclick="recordTaggedOut(1)">Tagged Out Base 1</button>
+                    <button class="btn-tagged-out" onclick="recordTaggedOut(2)">Tagged Out Base 2</button>
                     <button class="btn-catch" onclick="recordPopFlyCatch()">Pop Fly Catch</button>
                     <button class="btn-out" onclick="recordOut('Other')">Other Out</button>
                 </div>
@@ -697,7 +710,7 @@
     <script>
         // Game State
         let gameState = {
-            phase: 'setup', // setup, game, completion
+            phase: 'setup',
             teams: [
                 { name: '', players: [], currentHitterIndex: 0, score: 0 },
                 { name: '', players: [], currentHitterIndex: 0, score: 0 }
@@ -708,7 +721,7 @@
             strikes: 0,
             outs: 0,
             bases: { base1: false, base2: false },
-            timerSeconds: 2400, // 40 minutes
+            timerSeconds: 2400,
             timerActive: false,
             timerInterval: null,
             gameLog: [],
@@ -756,7 +769,6 @@
 
         // Start Game
         function startGame() {
-            // Validate input
             gameState.teams[0].name = document.getElementById('team1Name').value.trim();
             gameState.teams[1].name = document.getElementById('team2Name').value.trim();
 
@@ -810,26 +822,21 @@
             }
         }
 
-        // Record Hit
+        // Record Hit (NO automatic scoring)
         function recordHit(baseReached) {
             const hitter = getCurrentHitter();
             addToLog(`${hitter} hit to base ${baseReached}`);
 
-            // Score runners
-            if (gameState.bases.base2) {
-                gameState.teams[getCurrentTeamIndex()].score++;
-                addToLog(`Runner on base 2 scored!`);
+            // Place runner on the base they hit to
+            if (baseReached === 1) {
+                gameState.bases.base1 = true;
+            } else if (baseReached === 2) {
+                // If runner on base 1, they move to base 2
+                if (gameState.bases.base1) {
+                    gameState.bases.base2 = true;
+                }
+                gameState.bases.base1 = false;
             }
-
-            // Advance base2 if runner on base1 and hit to base2
-            if (gameState.bases.base1 && baseReached === 2) {
-                gameState.bases.base2 = true;
-            } else {
-                gameState.bases.base2 = false;
-            }
-
-            // Place hitter on appropriate base
-            gameState.bases.base1 = (baseReached === 1);
 
             gameState.tosses = 0;
             gameState.strikes = 0;
@@ -838,29 +845,68 @@
             updateDisplay();
         }
 
-        // Record Home Run
+        // Record Home Run (NO automatic scoring of runners)
         function recordHomeRun() {
             const hitter = getCurrentHitter();
-            let points = 2;
+            gameState.teams[getCurrentTeamIndex()].score += 2;
+            addToLog(`${hitter} HOME RUN! (+2 points)`);
 
-            if (gameState.bases.base1) {
-                points++;
-                addToLog(`Runner on base 1 scored!`);
-            }
-            if (gameState.bases.base2) {
-                points++;
-                addToLog(`Runner on base 2 scored!`);
-            }
-
-            gameState.teams[getCurrentTeamIndex()].score += points;
-            addToLog(`${hitter} HOME RUN! (+${points} points)`);
-
+            // Clear bases - user will manually score runners if they made it home
             gameState.bases = { base1: false, base2: false };
             gameState.tosses = 0;
             gameState.strikes = 0;
             advanceHitter();
-            setGameMessage(`🏠 ${hitter} HOME RUN! (+${points} points)`);
+            setGameMessage(`🏠 ${hitter} HOME RUN! (+2 points). Manually score any runners who made it home.`);
             updateDisplay();
+        }
+
+        // NEW: Runner Safe at Home
+        function recordRunnerSafeAtHome() {
+            if (!gameState.bases.base1 && !gameState.bases.base2) {
+                setGameMessage('No runners on base');
+                return;
+            }
+
+            let runners = [];
+            if (gameState.bases.base1) runners.push('Base 1');
+            if (gameState.bases.base2) runners.push('Base 2');
+
+            gameState.teams[getCurrentTeamIndex()].score++;
+            addToLog(`Runner safe at home from ${runners.join(' and ')}. +1 point`);
+            
+            // Clear bases after runner scores
+            gameState.bases = { base1: false, base2: false };
+            setGameMessage(`Runner scored! +1 point`);
+            updateDisplay();
+        }
+
+       // NEW: Tagged Out
+        function recordTaggedOut(baseNumber) {
+            if (baseNumber === 1 && !gameState.bases.base1) {
+                setGameMessage('No runner on base 1');
+                return;
+            }
+            if (baseNumber === 2 && !gameState.bases.base2) {
+                setGameMessage('No runner on base 2');
+                return;
+            }
+
+            gameState.outs++;
+            addToLog(`Runner tagged out at base ${baseNumber}`);
+
+            // Remove the runner from the base
+            if (baseNumber === 1) {
+                gameState.bases.base1 = false;
+            } else if (baseNumber === 2) {
+                gameState.bases.base2 = false;
+            }
+
+            if (gameState.outs === 3) {
+                endInning();
+            } else {
+                setGameMessage(`Out ${gameState.outs}/3 - Runner tagged out at base ${baseNumber}`);
+                updateDisplay();
+            }
         }
 
         // Record Pop Fly Catch
@@ -900,7 +946,7 @@
                 addToLog(`End of top inning ${gameState.currentInning}`);
             } else {
                 if (gameState.currentInning === 2) {
-                   gameState.phase = 'completion';
+                    gameState.phase = 'completion';
                     showPhase('completion');
                     displayFinalScores();
                     clearInterval(gameState.timerInterval);
@@ -1000,17 +1046,14 @@
                 </div>`
             ).join('');
 
-            // Auto-scroll to bottom
             logEntries.scrollTop = logEntries.scrollHeight;
         }
 
         // Display Functions
         function updateDisplay() {
-            // Update team panels
             updateTeamPanel(0);
             updateTeamPanel(1);
 
-            // Update game state
             document.getElementById('inningDisplay').textContent = gameState.currentInning;
             document.getElementById('halfDisplay').textContent = gameState.isTopHalf ? 'Top' : 'Bottom';
             document.getElementById('currentHitterDisplay').textContent = getCurrentHitter();
@@ -1019,11 +1062,9 @@
             document.getElementById('outsDisplay').textContent = `${gameState.outs}/3`;
             document.getElementById('timerDisplay').textContent = formatTime(gameState.timerSeconds);
 
-            // Update bases
             document.getElementById('base1').className = gameState.bases.base1 ? 'base occupied' : 'base empty';
             document.getElementById('base2').className = gameState.bases.base2 ? 'base occupied' : 'base empty';
 
-            // Update toss button
             const tossButton = document.getElementById('tossButton');
             tossButton.textContent = `Toss (${gameState.tosses}/4)`;
             tossButton.disabled = gameState.tosses >= 4;
@@ -1034,14 +1075,11 @@
             const panelId = `team${teamIndex + 1}Panel`;
             const panel = document.getElementById(panelId);
 
-            // Update panel styling
             const isActive = (gameState.isTopHalf && teamIndex === 0) || (!gameState.isTopHalf && teamIndex === 1);
             panel.className = `team-panel ${isActive ? 'active' : 'inactive'}`;
 
-            // Update scores
             document.getElementById(`team${teamIndex + 1}Score`).textContent = team.score;
 
-            // Update players list
             const playersList = document.getElementById(`team${teamIndex + 1}PlayersList`);
             playersList.innerHTML = team.players.map((player, idx) => 
                 `<div class="player-item ${idx === team.currentHitterIndex && isActive ? 'current-hitter' : ''}">
