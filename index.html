@@ -545,4 +545,593 @@
             border-radius: 10px;
         }
 
-        ::-webkit-scrollbar
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .empty-log {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏏 Stickball Scorekeeping</h1>
+        <p>Track your game with precision</p>
+    </div>
+
+    <div class="container">
+        <!-- SETUP PHASE -->
+        <div id="setupPhase" class="setup-container">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 30px;">Setup Your Game</h2>
+            
+            <div class="teams-grid">
+                <div class="team-setup">
+                    <h2>Team 1</h2>
+                    <div class="form-group">
+                        <label>Team Name</label>
+                        <input type="text" id="team1Name" placeholder="Enter team name">
+                    </div>
+                    <div class="players-container">
+                        <label style="display: block; font-weight: 600; color: #333; margin-bottom: 10px;">Players</label>
+                        <div id="team1PlayersInputs"></div>
+                        <button class="btn-add-player" onclick="addPlayerField(1)">+ Add Player</button>
+                    </div>
+                </div>
+
+                <div class="team-setup">
+                    <h2>Team 2</h2>
+                    <div class="form-group">
+                        <label>Team Name</label>
+                        <input type="text" id="team2Name" placeholder="Enter team name">
+                    </div>
+                    <div class="players-container">
+                        <label style="display: block; font-weight: 600; color: #333; margin-bottom: 10px;">Players</label>
+                        <div id="team2PlayersInputs"></div>
+                        <button class="btn-add-player" onclick="addPlayerField(2)">+ Add Player</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="start-button" onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- GAME PHASE -->
+        <div id="gamePhase" class="phase-hidden">
+            <div class="game-container">
+                <div class="game-message" id="gameMessage">Game started! Let's play!</div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2 id="pageTitle" style="color: #667eea; margin: 0;">Game in Progress</h2>
+                    <button class="btn-export" onclick="exportToCSV()">📥 Export to CSV</button>
+                </div>
+
+                <div class="scoreboard">
+                    <div id="team1Panel" class="team-panel active">
+                        <div class="team-name" id="team1DisplayName">Team 1</div>
+                        <div class="team-score" id="team1Score">0</div>
+                        <div class="players-list" id="team1PlayersList"></div>
+                    </div>
+                    <div id="team2Panel" class="team-panel inactive">
+                        <div class="team-name" id="team2DisplayName">Team 2</div>
+                        <div class="team-score" id="team2Score">0</div>
+                        <div class="players-list" id="team2PlayersList"></div>
+                    </div>
+                </div>
+
+                <div class="timer-box">
+                    <div style="font-size: 1em; font-weight: bold; margin-bottom: 10px;">⏱️ GAME TIMER</div>
+                    <div class="timer-display" id="timerDisplay">40:00</div>
+                    <div class="timer-controls">
+                        <button class="btn-timer" onclick="toggleTimer()">▶️ Play / ⏸️ Pause</button>
+                        <button class="btn-timer" onclick="resetTimer()">↻ Reset</button>
+                    </div>
+                </div>
+
+                <div class="game-state">
+                    <div class="state-box">
+                        <div class="state-label">Inning</div>
+                        <div class="state-value" id="inningDisplay">1</div>
+                        <div style="font-size: 0.8em; margin-top: 5px;" id="halfDisplay">Top</div>
+                    </div>
+                    <div class="state-box">
+                        <div class="state-label">Current Hitter</div>
+                        <div class="state-value" id="currentHitterDisplay" style="font-size: 1.2em;">-</div>
+                    </div>
+                    <div class="state-box">
+                        <div class="state-label">Tosses</div>
+                        <div class="state-value" id="tossesDisplay">0/4</div>
+                    </div>
+                    <div class="state-box">
+                        <div class="state-label">Strikes</div>
+                        <div class="state-value" id="strikesDisplay">0/3</div>
+                    </div>
+                    <div class="state-box">
+                        <div class="state-label">Outs</div>
+                        <div class="state-value" id="outsDisplay">0/3</div>
+                    </div>
+                    <div class="state-box">
+                        <div class="state-label">Bases</div>
+                        <div class="bases-display">
+                            <div class="base empty" id="base1">1</div>
+                            <div class="base empty" id="base2">2</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-buttons">
+                    <button class="btn-toss" id="tossButton" onclick="recordToss()">Toss (0/4)</button>
+                    <button class="btn-strike" onclick="recordStrike('Swing/Miss')">Strike (Swing)</button>
+                    <button class="btn-strike" onclick="recordStrike('Foul Ball')">Strike (Foul)</button>
+                    <button class="btn-hit" onclick="recordHit(1)">Hit to Base 1</button>
+                    <button class="btn-hit" onclick="recordHit(2)">Hit to Base 2</button>
+                    <button class="btn-home-run" onclick="recordHomeRun()">🏠 Home Run</button>
+                    <button class="btn-catch" onclick="recordPopFlyCatch()">Pop Fly Catch</button>
+                    <button class="btn-out" onclick="recordOut('Other')">Other Out</button>
+                </div>
+            </div>
+
+            <div class="game-log">
+                <h3>📋 Game Log</h3>
+                <div class="log-entries" id="logEntries">
+                    <div class="empty-log">No events yet</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPLETION PHASE -->
+        <div id="completionPhase" class="phase-hidden">
+            <div class="completion-container">
+                <h2>🎉 Game Over!</h2>
+                <div class="final-scores" id="finalScoresDisplay"></div>
+                <div class="completion-buttons">
+                    <button class="btn-export" onclick="exportToCSV()">📥 Export Game Data</button>
+                    <button class="btn-new-game" onclick="resetGame()">Start New Game</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            phase: 'setup', // setup, game, completion
+            teams: [
+                { name: '', players: [], currentHitterIndex: 0, score: 0 },
+                { name: '', players: [], currentHitterIndex: 0, score: 0 }
+            ],
+            currentInning: 1,
+            isTopHalf: true,
+            tosses: 0,
+            strikes: 0,
+            outs: 0,
+            bases: { base1: false, base2: false },
+            timerSeconds: 2400, // 40 minutes
+            timerActive: false,
+            timerInterval: null,
+            gameLog: [],
+            gameMessage: "Game started! Let's play!"
+        };
+
+        // Initialize Setup Phase
+        function initializeSetup() {
+            for (let teamId = 1; teamId <= 2; teamId++) {
+                gameState.teams[teamId - 1].players = ['', '', '', ''];
+                renderPlayerInputs(teamId);
+            }
+        }
+
+        // Render player input fields
+        function renderPlayerInputs(teamId) {
+            const container = document.getElementById(`team${teamId}PlayersInputs`);
+            const players = gameState.teams[teamId - 1].players;
+            
+            container.innerHTML = players.map((player, idx) => `
+                <div class="player-input-group">
+                    <input type="text" value="${player}" placeholder="Player ${idx + 1}" 
+                           onchange="updatePlayerName(${teamId - 1}, ${idx}, this.value)">
+                    <button class="btn-remove-player" onclick="removePlayer(${teamId - 1}, ${idx})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // Add a new player field
+        function addPlayerField(teamId) {
+            gameState.teams[teamId - 1].players.push('');
+            renderPlayerInputs(teamId);
+        }
+
+        // Remove a player field
+        function removePlayer(teamIndex, playerIndex) {
+            gameState.teams[teamIndex].players.splice(playerIndex, 1);
+            renderPlayerInputs(teamIndex + 1);
+        }
+
+        // Update player name
+        function updatePlayerName(teamIndex, playerIndex, name) {
+            gameState.teams[teamIndex].players[playerIndex] = name;
+        }
+
+        // Start Game
+        function startGame() {
+            // Validate input
+            gameState.teams[0].name = document.getElementById('team1Name').value.trim();
+            gameState.teams[1].name = document.getElementById('team2Name').value.trim();
+
+            if (!gameState.teams[0].name || !gameState.teams[1].name) {
+                alert('Please fill in team names');
+                return;
+            }
+
+            if (gameState.teams[0].players.some(p => !p) || gameState.teams[1].players.some(p => !p)) {
+                alert('Please fill in all player names or remove empty fields');
+                return;
+            }
+
+            if (gameState.teams[0].players.length === 0 || gameState.teams[1].players.length === 0) {
+                alert('Each team must have at least one player');
+                return;
+            }
+
+            gameState.phase = 'game';
+            gameState.gameLog = [];
+            addToLog('Game started');
+            updateDisplay();
+            showPhase('game');
+        }
+
+        // Record Toss
+        function recordToss() {
+            if (gameState.tosses >= 4) return;
+
+            gameState.tosses++;
+            updateDisplay();
+            addToLog(`Toss ${gameState.tosses} to ${getCurrentHitter()}`);
+
+            if (gameState.tosses === 4) {
+                setGameMessage(`4th toss! Next action: hit or strike.`);
+                document.getElementById('tossButton').disabled = true;
+            }
+        }
+
+        // Record Strike
+        function recordStrike(type) {
+            gameState.strikes++;
+            gameState.tosses = 0;
+            addToLog(`Strike ${gameState.strikes} (${type}) - ${getCurrentHitter()}`);
+
+            if (gameState.strikes === 3) {
+                recordOut('Struck Out');
+            } else {
+                setGameMessage(`${getCurrentHitter()} - Strike ${gameState.strikes}/3`);
+                updateDisplay();
+            }
+        }
+
+        // Record Hit
+        function recordHit(baseReached) {
+            const hitter = getCurrentHitter();
+            addToLog(`${hitter} hit to base ${baseReached}`);
+
+            // Score runners
+            if (gameState.bases.base2) {
+                gameState.teams[getCurrentTeamIndex()].score++;
+                addToLog(`Runner on base 2 scored!`);
+            }
+
+            // Advance base2 if runner on base1 and hit to base2
+            if (gameState.bases.base1 && baseReached === 2) {
+                gameState.bases.base2 = true;
+            } else {
+                gameState.bases.base2 = false;
+            }
+
+            // Place hitter on appropriate base
+            gameState.bases.base1 = (baseReached === 1);
+
+            gameState.tosses = 0;
+            gameState.strikes = 0;
+            advanceHitter();
+            setGameMessage(`${hitter} hit to base ${baseReached}`);
+            updateDisplay();
+        }
+
+        // Record Home Run
+        function recordHomeRun() {
+            const hitter = getCurrentHitter();
+            let points = 2;
+
+            if (gameState.bases.base1) {
+                points++;
+                addToLog(`Runner on base 1 scored!`);
+            }
+            if (gameState.bases.base2) {
+                points++;
+                addToLog(`Runner on base 2 scored!`);
+            }
+
+            gameState.teams[getCurrentTeamIndex()].score += points;
+            addToLog(`${hitter} HOME RUN! (+${points} points)`);
+
+            gameState.bases = { base1: false, base2: false };
+            gameState.tosses = 0;
+            gameState.strikes = 0;
+            advanceHitter();
+            setGameMessage(`🏠 ${hitter} HOME RUN! (+${points} points)`);
+            updateDisplay();
+        }
+
+        // Record Pop Fly Catch
+        function recordPopFlyCatch() {
+            const hitter = getCurrentHitter();
+            const fieldingTeamIndex = getCurrentTeamIndex() === 0 ? 1 : 0;
+            gameState.teams[fieldingTeamIndex].score++;
+            addToLog(`${hitter} caught on pop fly. Fielding team +1 point`);
+            setGameMessage(`Pop fly caught! ${gameState.teams[fieldingTeamIndex].name} +1 point`);
+            recordOut('Pop Fly Caught');
+        }
+
+        // Record Out
+        function recordOut(type) {
+            gameState.outs++;
+            const hitter = getCurrentHitter();
+            addToLog(`Out ${gameState.outs}: ${hitter} (${type})`);
+
+            gameState.bases = { base1: false, base2: false };
+            gameState.tosses = 0;
+            gameState.strikes = 0;
+
+            if (gameState.outs === 3) {
+                endInning();
+            } else {
+                advanceHitter();
+                setGameMessage(`Out ${gameState.outs}/3 - Next hitter`);
+                updateDisplay();
+            }
+        }
+
+        // End Inning
+        function endInning() {
+            if (gameState.isTopHalf) {
+                gameState.isTopHalf = false;
+                setGameMessage(`End of top inning ${gameState.currentInning}. Bottom inning starting.`);
+                addToLog(`End of top inning ${gameState.currentInning}`);
+            } else {
+                if (gameState.currentInning === 2) {
+                   gameState.phase = 'completion';
+                    showPhase('completion');
+                    displayFinalScores();
+                    clearInterval(gameState.timerInterval);
+                    gameState.timerActive = false;
+                    return;
+                } else {
+                    gameState.currentInning = 2;
+                    gameState.isTopHalf = true;
+                    setGameMessage(`End of inning 1. Inning 2 starting.`);
+                    addToLog(`End of inning 1`);
+                }
+            }
+
+            gameState.outs = 0;
+            gameState.tosses = 0;
+            gameState.strikes = 0;
+            gameState.bases = { base1: false, base2: false };
+            updateDisplay();
+        }
+
+        // Advance Hitter
+        function advanceHitter() {
+            const teamIndex = getCurrentTeamIndex();
+            const numPlayers = gameState.teams[teamIndex].players.length;
+            gameState.teams[teamIndex].currentHitterIndex = 
+                (gameState.teams[teamIndex].currentHitterIndex + 1) % numPlayers;
+        }
+
+        // Timer Functions
+        function toggleTimer() {
+            gameState.timerActive = !gameState.timerActive;
+
+            if (gameState.timerActive) {
+                gameState.timerInterval = setInterval(() => {
+                    gameState.timerSeconds--;
+                    document.getElementById('timerDisplay').textContent = formatTime(gameState.timerSeconds);
+
+                    if (gameState.timerSeconds === 0) {
+                        clearInterval(gameState.timerInterval);
+                        gameState.timerActive = false;
+                        setGameMessage('⏰ Game Time Expired!');
+                        gameState.phase = 'completion';
+                        showPhase('completion');
+                        displayFinalScores();
+                    }
+                }, 1000);
+            } else {
+                clearInterval(gameState.timerInterval);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(gameState.timerInterval);
+            gameState.timerActive = false;
+            gameState.timerSeconds = 2400;
+            updateDisplay();
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Utility Functions
+        function getCurrentTeamIndex() {
+            return gameState.isTopHalf ? 0 : 1;
+        }
+
+        function getCurrentHitter() {
+            const teamIndex = getCurrentTeamIndex();
+            return gameState.teams[teamIndex].players[gameState.teams[teamIndex].currentHitterIndex];
+        }
+
+        function setGameMessage(message) {
+            gameState.gameMessage = message;
+            document.getElementById('gameMessage').textContent = message;
+        }
+
+        function addToLog(action) {
+            const timestamp = new Date().toLocaleTimeString();
+            gameState.gameLog.push({ timestamp, action });
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const logEntries = document.getElementById('logEntries');
+            if (gameState.gameLog.length === 0) {
+                logEntries.innerHTML = '<div class="empty-log">No events yet</div>';
+                return;
+            }
+
+            logEntries.innerHTML = gameState.gameLog.map(entry => 
+                `<div class="log-entry">
+                    <span class="log-timestamp">${entry.timestamp}</span>
+                    <span class="log-action">${entry.action}</span>
+                </div>`
+            ).join('');
+
+            // Auto-scroll to bottom
+            logEntries.scrollTop = logEntries.scrollHeight;
+        }
+
+        // Display Functions
+        function updateDisplay() {
+            // Update team panels
+            updateTeamPanel(0);
+            updateTeamPanel(1);
+
+            // Update game state
+            document.getElementById('inningDisplay').textContent = gameState.currentInning;
+            document.getElementById('halfDisplay').textContent = gameState.isTopHalf ? 'Top' : 'Bottom';
+            document.getElementById('currentHitterDisplay').textContent = getCurrentHitter();
+            document.getElementById('tossesDisplay').textContent = `${gameState.tosses}/4`;
+            document.getElementById('strikesDisplay').textContent = `${gameState.strikes}/3`;
+            document.getElementById('outsDisplay').textContent = `${gameState.outs}/3`;
+            document.getElementById('timerDisplay').textContent = formatTime(gameState.timerSeconds);
+
+            // Update bases
+            document.getElementById('base1').className = gameState.bases.base1 ? 'base occupied' : 'base empty';
+            document.getElementById('base2').className = gameState.bases.base2 ? 'base occupied' : 'base empty';
+
+            // Update toss button
+            const tossButton = document.getElementById('tossButton');
+            tossButton.textContent = `Toss (${gameState.tosses}/4)`;
+            tossButton.disabled = gameState.tosses >= 4;
+        }
+
+        function updateTeamPanel(teamIndex) {
+            const team = gameState.teams[teamIndex];
+            const panelId = `team${teamIndex + 1}Panel`;
+            const panel = document.getElementById(panelId);
+
+            // Update panel styling
+            const isActive = (gameState.isTopHalf && teamIndex === 0) || (!gameState.isTopHalf && teamIndex === 1);
+            panel.className = `team-panel ${isActive ? 'active' : 'inactive'}`;
+
+            // Update scores
+            document.getElementById(`team${teamIndex + 1}Score`).textContent = team.score;
+
+            // Update players list
+            const playersList = document.getElementById(`team${teamIndex + 1}PlayersList`);
+            playersList.innerHTML = team.players.map((player, idx) => 
+                `<div class="player-item ${idx === team.currentHitterIndex && isActive ? 'current-hitter' : ''}">
+                    ${player}
+                </div>`
+            ).join('');
+        }
+
+        function displayFinalScores() {
+            const display = document.getElementById('finalScoresDisplay');
+            display.innerHTML = gameState.teams.map((team, idx) => 
+                `<div class="final-score-item">
+                    <div class="team-name">${team.name || `Team ${idx + 1}`}</div>
+                    <div class="score-value">${team.score}</div>
+                </div>`
+            ).join('');
+        }
+
+        function showPhase(phase) {
+            document.getElementById('setupPhase').classList.toggle('phase-hidden', phase !== 'setup');
+            document.getElementById('gamePhase').classList.toggle('phase-hidden', phase !== 'game');
+            document.getElementById('completionPhase').classList.toggle('phase-hidden', phase !== 'completion');
+        }
+
+        // CSV Export
+        function exportToCSV() {
+            const team1 = gameState.teams[0];
+            const team2 = gameState.teams[1];
+
+            let csv = 'Stickball Game Report\n';
+            csv += `Date: ${new Date().toLocaleString()}\n\n`;
+            csv += `Team 1: ${team1.name}\n`;
+            csv += `Players: ${team1.players.join(', ')}\n`;
+            csv += `Final Score: ${team1.score}\n\n`;
+            csv += `Team 2: ${team2.name}\n`;
+            csv += `Players: ${team2.players.join(', ')}\n`;
+            csv += `Final Score: ${team2.score}\n\n`;
+            csv += 'Game Log\n';
+            csv += 'Timestamp,Action\n';
+
+            gameState.gameLog.forEach(entry => {
+                csv += `"${entry.timestamp}","${entry.action}"\n`;
+            });
+
+            downloadCSV(csv, `stickball_game_${new Date().getTime()}.csv`);
+        }
+
+        function downloadCSV(csv, filename) {
+            const link = document.createElement('a');
+            link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Reset Game
+        function resetGame() {
+            gameState = {
+                phase: 'setup',
+                teams: [
+                    { name: '', players: [], currentHitterIndex: 0, score: 0 },
+                    { name: '', players: [], currentHitterIndex: 0, score: 0 }
+                ],
+                currentInning: 1,
+                isTopHalf: true,
+                tosses: 0,
+                strikes: 0,
+                outs: 0,
+                bases: { base1: false, base2: false },
+                timerSeconds: 2400,
+                timerActive: false,
+                timerInterval: null,
+                gameLog: [],
+                gameMessage: "Game started! Let's play!"
+            };
+
+            document.getElementById('team1Name').value = '';
+            document.getElementById('team2Name').value = '';
+
+            clearInterval(gameState.timerInterval);
+            showPhase('setup');
+            initializeSetup();
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeSetup();
+            showPhase('setup');
+        });
+    </script>
+</body>
+</html>
