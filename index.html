@@ -513,9 +513,12 @@
     <button class="btn-info" onclick="attemptToss()">Toss</button>
     <button class="btn-secondary" onclick="resetToss()">Reset Toss</button>
     <button class="btn-warning" onclick="attemptStrikeFoul()">Strike (Foul)</button>
-                <button class="btn-warning" onclick="attemptStrikeSwing()">Strike (Swing)</button>
-                <button class="btn-success" onclick="attemptAddPoint()">Add Point</button>
-            </div>
+    <button class="btn-warning" onclick="attemptStrikeSwing()">Strike (Swing)</button>
+</div>
+
+<div class="button-group full">
+    <button class="btn-success" onclick="attemptAddPoint()">Add Point</button>
+</div>
 
             <div class="button-group triple">
                 <button class="btn-success" onclick="attemptHomeRun()">Home Run</button>
@@ -775,21 +778,7 @@
                 gameState.strikes++;
                 addGameLog(`${batterName} - Automatic Strike from 4 tosses! (${gameState.strikes}/3)`, true);
 
-            // Reset toss count
-            function resetToss() {
-    if (gameState.selectedBatterIndex === null) {
-        alert('Please select a batter first!');
-        openBatterModal();
-        return;
-    }
-
-    const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
-    const batterName = rosters[team][gameState.selectedBatterIndex];
-    const previousTosses = gameState.tosses;
-    gameState.tosses = 0;
-    addGameLog(`${batterName} - Toss count reset (was ${previousTosses})`);
-    updateUI();
-}    
+            
                 // Check if strikes reached 3 for automatic out
                 if (gameState.strikes >= 3) {
                     triggerAutoOut();
@@ -840,6 +829,22 @@
             }
         }
 
+        // Reset Toss Function
+function resetToss() {
+    if (gameState.selectedBatterIndex === null) {
+        alert('Please select a batter first!');
+        openBatterModal();
+        return;
+    }
+
+    const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
+    const batterName = rosters[team][gameState.selectedBatterIndex];
+    const previousTosses = gameState.tosses;
+    gameState.tosses = 0;
+    addGameLog(`${batterName} - Toss count reset (was ${previousTosses})`);
+    updateUI();
+}
+        
         // Auto Out on 3 Strikes
         function triggerAutoOut() {
             const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
@@ -1298,4 +1303,5 @@
     </script>
 </body>
 </html>
+
 
