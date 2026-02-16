@@ -90,12 +90,18 @@
             color: #007bff;
         }
 
+        .counters-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
         .strike-counter-display {
             padding: 12px;
             background-color: #fff3cd;
             border-left: 3px solid #ffc107;
             border-radius: 6px;
-            margin-bottom: 20px;
         }
 
         .strike-counter-label {
@@ -117,7 +123,6 @@
             background-color: #e8f5e9;
             border-left: 3px solid #28a745;
             border-radius: 6px;
-            margin-bottom: 20px;
         }
 
         .toss-counter-label {
@@ -332,6 +337,11 @@
             line-height: 1.5;
         }
 
+        .log-entry.auto-conversion {
+            border-left-color: #ffc107;
+            background-color: #fffbf0;
+        }
+
         .log-timestamp {
             color: #6c757d;
             font-size: 11px;
@@ -444,6 +454,10 @@
             .button-group {
                 grid-template-columns: 1fr;
             }
+
+            .counters-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -479,14 +493,15 @@
                 <div class="current-batter-name" id="currentBatterName">None Selected</div>
             </div>
 
-            <div class="toss-counter-display" id="tossDisplay" style="display: none;">
-                <div class="toss-counter-label">Tosses</div>
-                <div class="toss-counter-value" id="tossCounterValue">0</div>
-            </div>
-
-            <div class="strike-counter-display" id="strikeDisplay" style="display: none;">
-                <div class="strike-counter-label">Strikes</div>
-                <div class="strike-counter-value" id="strikeCounterValue">0</div>
+            <div class="counters-container" id="countersContainer" style="display: none;">
+                <div class="toss-counter-display">
+                    <div class="toss-counter-label">Tosses</div>
+                    <div class="toss-counter-value" id="tossCounterValue">0</div>
+                </div>
+                <div class="strike-counter-display">
+                    <div class="strike-counter-label">Strikes</div>
+                    <div class="strike-counter-value" id="strikeCounterValue">0</div>
+                </div>
             </div>
 
             <div class="button-group full">
@@ -740,7 +755,7 @@
             gameState.tosses = 0;
         }
 
-        // Toss Function
+        // Toss Function with Automatic Conversion
         function attemptToss() {
             if (gameState.selectedBatterIndex === null) {
                 alert('Please select a batter first!');
@@ -752,7 +767,22 @@
             const team = gameState.currentTeam === 1 ? 'team1' : 'team2';
             const batterName = rosters[team][gameState.selectedBatterIndex];
             addGameLog(`${batterName} - Toss #${gameState.tosses}`);
-            updateUI();
+
+            // Check if tosses reached 4 for automatic conversion
+            if (gameState.tosses === 4) {
+                gameState.tosses = 0;
+                gameState.strikes++;
+                addGameLog(`${batterName} - Automatic Strike from 4 tosses! (${gameState.strikes}/3)`, true);
+
+                // Check if strikes reached 3 for automatic out
+                if (gameState.strikes >= 3) {
+                    triggerAutoOut();
+                } else {
+                    updateUI();
+                }
+            } else {
+                updateUI();
+            }
         }
 
         // Strike Functions
@@ -1156,9 +1186,9 @@
         }
 
         // Game Log
-        function addGameLog(message) {
+        function addGameLog(message, isAutoConversion = false) {
             const timestamp = new Date().toLocaleTimeString();
-            gameState.gameLog.push({ message, timestamp });
+            gameState.gameLog.push({ message, timestamp, isAutoConversion });
             renderGameLog();
         }
 
@@ -1168,7 +1198,7 @@
 
             gameState.gameLog.forEach(entry => {
                 const logEntry = document.createElement('div');
-                logEntry.className = 'log-entry';
+                logEntry.className = `log-entry ${entry.isAutoConversion ? 'auto-conversion' : ''}`;
                 logEntry.innerHTML = `
                     <div class="log-timestamp">${entry.timestamp}</div>
                     <div class="log-action">${entry.message}</div>
@@ -1236,22 +1266,14 @@
                 batterDisplay.style.display = 'none';
             }
 
-            // Update toss counter display
-            const tossDisplay = document.getElementById('tossDisplay');
-            if (gameState.selectedBatterIndex !== null && gameState.tosses > 0) {
+            // Update toss and strike counters display
+            const countersContainer = document.getElementById('countersContainer');
+            if (gameState.selectedBatterIndex !== null && (gameState.tosses > 0 || gameState.strikes > 0)) {
                 document.getElementById('tossCounterValue').textContent = gameState.tosses;
-                tossDisplay.style.display = 'block';
-            } else {
-                tossDisplay.style.display = 'none';
-            }
-
-            // Update strike counter display
-            const strikeDisplay = document.getElementById('strikeDisplay');
-            if (gameState.selectedBatterIndex !== null && gameState.strikes > 0) {
                 document.getElementById('strikeCounterValue').textContent = gameState.strikes;
-                strikeDisplay.style.display = 'block';
+                countersContainer.style.display = 'grid';
             } else {
-                strikeDisplay.style.display = 'none';
+                countersContainer.style.display = 'none';
             }
         }
 
